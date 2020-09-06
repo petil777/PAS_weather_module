@@ -1,0 +1,74 @@
+[
+    {
+        "precip": "75%",
+        "forecast_date": "Sun\n9/6",
+        "temp": "25\u00b0\n/19\u00b0",
+        "phrase": "Not as warm with showers"
+    },
+    {
+        "precip": "73%",
+        "forecast_date": "Mon\n9/7",
+        "temp": "23\u00b0\n/20\u00b0",
+        "phrase": "Wind and rain from typhoon"
+    },
+    {
+        "precip": "8%",
+        "forecast_date": "Tue\n9/8",
+        "temp": "26\u00b0\n/20\u00b0",
+        "phrase": "Mostly sunny and nice"
+    },
+    {
+        "precip": "40%",
+        "forecast_date": "Wed\n9/9",
+        "temp": "26\u00b0\n/19\u00b0",
+        "phrase": "An a.m. shower; partly sunny"
+    },
+    {
+        "precip": "62%",
+        "forecast_date": "Thu\n9/10",
+        "temp": "26\u00b0\n/17\u00b0",
+        "phrase": "A couple of showers"
+    },
+    {
+        "precip": "97%",
+        "forecast_date": "Fri\n9/11",
+        "temp": "26\u00b0\n/18\u00b0",
+        "phrase": "Variable clouds with showers"
+    },
+    {
+        "precip": "61%",
+        "forecast_date": "Sat\n9/12",
+        "temp": "26\u00b0\n/18\u00b0",
+        "phrase": "Mainly cloudy, showers around"
+    },
+    {
+        "precip": "17%",
+        "forecast_date": "Sun\n9/13",
+        "temp": "26\u00b0\n/18\u00b0",
+        "phrase": "Times of clouds and sun"
+    },
+    {
+        "precip": "22%",
+        "forecast_date": "Mon\n9/14",
+        "temp": "27\u00b0\n/18\u00b0",
+        "phrase": "Abundant sunshine"
+    },
+    {
+        "precip": "5%",
+        "forecast_date": "Tue\n9/15",
+        "temp": "26\u00b0\n/18\u00b0",
+        "phrase": "Increasing cloudiness"
+    },
+    {
+        "precip": "5%",
+        "forecast_date": "Wed\n9/16",
+        "temp": "26\u00b0\n/17\u00b0",
+        "phrase": "Partly sunny"
+    },
+    {
+        "precip": "1%",
+        "forecast_date": "Thu\n9/17",
+        "temp": "25\u00b0\n/18\u00b0",
+        "phrase": "More sun than clouds"
+    }
+]
