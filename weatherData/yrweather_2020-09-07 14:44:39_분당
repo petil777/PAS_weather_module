@@ -1,0 +1,56 @@
+[
+    {
+        "temp": "24°",
+        "precip": "0.1 mm",
+        "weather": "Fair. ",
+        "forecast_date": "2020/09/08"
+    },
+    {
+        "temp": "22°",
+        "precip": "5.1 mm",
+        "weather": "Heavy rain showers. ",
+        "forecast_date": "2020/09/09"
+    },
+    {
+        "temp": "21°",
+        "precip": "0.1 mm",
+        "weather": "Fair. ",
+        "forecast_date": "2020/09/10"
+    },
+    {
+        "temp": "20°",
+        "precip": "0 mm",
+        "weather": "Partly cloudy. ",
+        "forecast_date": "2020/09/11"
+    },
+    {
+        "temp": "21°",
+        "precip": "0 mm",
+        "weather": "Fair. ",
+        "forecast_date": "2020/09/12"
+    },
+    {
+        "temp": "20°",
+        "precip": "0 mm",
+        "weather": "Fair. ",
+        "forecast_date": "2020/09/13"
+    },
+    {
+        "temp": "18°",
+        "precip": "0 mm",
+        "weather": "Clear sky. ",
+        "forecast_date": "2020/09/14"
+    },
+    {
+        "temp": "18°",
+        "precip": "0 mm",
+        "weather": "Fair. ",
+        "forecast_date": "2020/09/15"
+    },
+    {
+        "temp": "18°",
+        "precip": "0 mm",
+        "weather": "Partly cloudy. ",
+        "forecast_date": "2020/09/16"
+    }
+]

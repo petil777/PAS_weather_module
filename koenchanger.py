@@ -13,14 +13,16 @@ class KoEnSoundChanger():
         pass
 
     def ko_to_en_sound(self, word):
+        if word == '' : return ''
         try:
             res = requests.get('http://roman.cs.pusan.ac.kr/result_all.aspx', headers=headers, params={'input':word})
             res.raise_for_status()
         except requests.exceptions.RequestException as err:
             print('ko en change request error : ', err)
             exit(0)
+            
         soup = BeautifulSoup(res.text, 'html.parser')
         targets = soup.find_all('span', {'id': 'outputRMGoyu'})
         if len(targets) > 0:
-            return targets[0].text
+            return str.lower(targets[0].text)
         return None
