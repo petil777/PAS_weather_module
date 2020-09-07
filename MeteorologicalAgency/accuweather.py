@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 import json
 import glob
+from koenchanger import KoEnSoundChanger
 
 headers = {
     'Connection': 'keep-alive',
@@ -24,49 +25,50 @@ class AccuWeatherAgency():
     """
     File Format : accuweather_2020-09-05 20:03:57_분당
     """
-    def __init__(self, file_dir, must_query=False, hours_min=3):
+    def __init__(self, file_dir):
         self.file_dir = file_dir
-        self.must_query = must_query
-        self.hours_min = hours_min
         self.region_name = None
         self.target_file_name = None
         self.result_data = None
-    def find_file(self, region):
-        
-        target_files = glob.glob(self.file_dir + 'accuweather_*')
-        for files in target_files:
-            target_date = files.split('_')[1]
-            target_region = files.split('_')[2]
-            if bool(re.search(region, target_region)) is not True:
-                continue
-            
-            dif = datetime.now() - datetime.strptime(target_date, '%Y-%m-%d %H:%M:%S') 
 
-            days, seconds = dif.days, dif.seconds
-            hours = days*24 + seconds/3600
-            if hours <= self.hours_min:
-                self.target_file_name = files
+    def file_write(self):
+        dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.target_file_name = self.file_dir + 'accuweather_' + str(dt) + '_' + str(self.region_name)
+        with open(self.target_file_name, 'w') as fi:
+            # To allow special character for temparature, ensure_ascii=false
+            fi.write(json.dumps(self.result_data, indent=4, ensure_ascii=False))
+
+    # def find_file(self, region):
+    #     target_files = glob.glob(self.file_dir + 'accuweather_*')
+    #     for files in target_files:
+    #         target_date = files.split('_')[1]
+    #         target_region = files.split('_')[2]
+    #         if bool(re.search(region, target_region)) is not True:
+    #             continue
+            
+    #         dif = datetime.now() - datetime.strptime(target_date, '%Y-%m-%d %H:%M:%S') 
+    #         days, seconds = dif.days, dif.seconds
+    #         hours = days*24 + seconds/3600
+    #         if hours <= self.hours_min:
+    #             self.target_file_name = files
                 
             
     def process_all(self, region):
         region= str.lower(region).strip()
-        
-        if self.must_query == False:
-            self.find_file(region)
 
-        #if self.target_file_name --> get file name success. So don't query
-        print('Found target File : ', self.target_file_name)
-        if self.target_file_name is not None:
-            with open(self.target_file_name, 'r') as fr:
-                data = fr.read()
-                self.result_data = json.loads(data)
-        else: 
-            self.region_search(region)
-            self.redirection_for_region_engname()
-            self.get_daily_weather()
+
+        # if self.target_file_name is not None:
+        #     with open(self.target_file_name, 'r') as fr:
+        #         data = fr.read()
+        #         self.result_data = json.loads(data)
+        
+        region = KoEnSoundChanger().ko_to_en_sound(region) 
+        self.region_search(region)
+        self.redirection_for_region_engname()
+        self.get_daily_weather()
 
     def region_search(self, region):
-        query_url = 'https://www.accuweather.com/ko/search-locations?query='
+        query_url = 'https://www.accuweather.com/en/search-locations?query='
         query_url += region
         # Don't know why but this query should be changed with User-Agent different with real browser agent
         ### Search region by input
@@ -111,7 +113,7 @@ class AccuWeatherAgency():
             if len(res_a) == 0 : continue
             for target_a in res_a:
                 p = re.compile(region)
-                matched_words = p.findall(target_a.text.strip())
+                matched_words = p.findall(str.lower(target_a.text.strip()))
                 # if(bool(re.search(region, target_a.text.strip()))):
                 if len(matched_words) > 0:
                     self.region_name = matched_words[0]
@@ -153,19 +155,25 @@ class AccuWeatherAgency():
 
         daily_forecasts = soup.find_all('a', {'class' : 'daily-forecast-card'})
 
-        daily_list = []
+        self.result_data = []
+        forecast_dates = []
+        weathers = []
+        temperatures = []
+        precipitations = []
         for daily in daily_forecasts:
-            forecast_date = daily.select(".info > .date ")[0].text.strip()
-            temp = daily.select(".info > .temp")[0].text.strip()
-            phrase = daily.select(".phrase")[0].text.strip()
+            date = daily.select(".info > .date ")[0].text.strip() # Fri\n9/18
+            temp = daily.select(".info > .temp")[0].text.strip() # 25°\n/17°
+            weather = daily.select(".phrase")[0].text.strip()
             precip = daily.select(".precip")[0].text.strip()
+            forecast_dates.append(date)
+            temperatures.append(temp)
+            precipitations.append(precip)
+            weathers.append(weather)
             # {'temp': '23°\n/20°', 'precip': '73%', 'forecast_date': 'Mon\n9/7', 'phrase': 'Wind and rain from typhoon'}
-            daily_list.append({'forecast_date':forecast_date, 'temp':temp, 'phrase':phrase, 'precip':precip})
-    
-        self.result_data = daily_list
-        dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.target_file_name = self.file_dir + 'accuweather_' + str(dt) + '_' + str(self.region_name)
-        with open(self.target_file_name, 'w') as fi:
-            # To allow special character for temparature, ensure_ascii=false
-            fi.write(json.dumps(daily_list, indent=4, ensure_ascii=False))
-            
+        
+        for idx, date in enumerate(forecast_dates):
+            self.result_data.append({'forecast_date':date, 'weather' : weathers[idx], 'temp':temperatures[idx], 'precip':precipitations[idx]})
+
+        # self.file_write()
+        # print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
+        print(json.dumps(self.result_data, ensure_ascii=False))

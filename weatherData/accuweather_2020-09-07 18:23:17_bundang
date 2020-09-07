@@ -1,0 +1,74 @@
+[
+    {
+        "weather": "Wind and rain from typhoon",
+        "temp": "25°\n/21°",
+        "forecast_date": "Mon\n9/7",
+        "precip": "90%"
+    },
+    {
+        "weather": "Mostly sunny and pleasant",
+        "temp": "26°\n/19°",
+        "forecast_date": "Tue\n9/8",
+        "precip": "16%"
+    },
+    {
+        "weather": "A.M. showers; mostly cloudy",
+        "temp": "25°\n/18°",
+        "forecast_date": "Wed\n9/9",
+        "precip": "100%"
+    },
+    {
+        "weather": "Mostly sunny and pleasant",
+        "temp": "26°\n/17°",
+        "forecast_date": "Thu\n9/10",
+        "precip": "3%"
+    },
+    {
+        "weather": "Variably cloudy with showers",
+        "temp": "27°\n/17°",
+        "forecast_date": "Fri\n9/11",
+        "precip": "66%"
+    },
+    {
+        "weather": "A passing afternoon shower",
+        "temp": "27°\n/16°",
+        "forecast_date": "Sat\n9/12",
+        "precip": "55%"
+    },
+    {
+        "weather": "Partly sunny",
+        "temp": "25°\n/14°",
+        "forecast_date": "Sun\n9/13",
+        "precip": "25%"
+    },
+    {
+        "weather": "Abundant sunshine",
+        "temp": "26°\n/16°",
+        "forecast_date": "Mon\n9/14",
+        "precip": "3%"
+    },
+    {
+        "weather": "Mostly sunny",
+        "temp": "26°\n/17°",
+        "forecast_date": "Tue\n9/15",
+        "precip": "4%"
+    },
+    {
+        "weather": "Partly sunny",
+        "temp": "25°\n/17°",
+        "forecast_date": "Wed\n9/16",
+        "precip": "1%"
+    },
+    {
+        "weather": "Mostly cloudy",
+        "temp": "25°\n/17°",
+        "forecast_date": "Thu\n9/17",
+        "precip": "8%"
+    },
+    {
+        "weather": "Strong p.m. t-storms; rain",
+        "temp": "25°\n/18°",
+        "forecast_date": "Fri\n9/18",
+        "precip": "78%"
+    }
+]

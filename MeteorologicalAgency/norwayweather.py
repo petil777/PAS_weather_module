@@ -19,11 +19,10 @@ class YrAgency():
     def process_all(self, region):
         region = str.lower(region).strip()
         self.get_query(region)
-        
         if self.long_term:
             self.long_term_query()
         #Default
-        else
+        else:
             self.daily_query()
 
     def file_write(self):
@@ -49,7 +48,6 @@ class YrAgency():
         if region_ensound == None:
             print('No proper changed en sound')
             exit(0)
-        
 
         query_url = 'https://www.yr.no/soek/soek.aspx?sted=' + region_ensound
         
@@ -70,16 +68,19 @@ class YrAgency():
             # change eng suppor url "https://www.yr.no/place/South_Korea/Gyeonggi/Bundang-gu/"
             region_title = tr.find('a')['title']
             web_api = tr.find('a')['href']
-            #bundang-  bundang-gu
-            if str.lower(region_title).startswith(region_ensound+'-' + district_ensound): 
+            #bundang-  bundang-gu  seoul
+            # /place/South_Korea/Seoul/Seoul/ vs /place/South_Korea/Seoul/  .. have to select former!
+            if str.lower(region_title).startswith(region_ensound): 
                 self.real_query = 'https://www.yr.no'+ '/place/South_Korea/' + '/'.join(web_api.split('/')[3:])
-                break
+                #Perfect match
+                if str.lower(region_title) == region_ensound+'-' + district_ensound \
+                    or (district_ensound=='' and str.lower(region_title) == region_ensound):
+                    break
             
     def daily_query(self):
         if self.real_query is None:
             print('real query is not set. please check region name with district')
             return
-
         #Second query
         try:
             res = requests.get(self.real_query)
@@ -130,7 +131,8 @@ class YrAgency():
         for idx, date in enumerate(forecast_dates):
             self.result_data.append({'forecast_date': date, 'weather':weathers[idx], 'temp':temperatures[idx], 'precip' : precipitations[idx]})
 
-        self.file_write()
+        # self.file_write()
+        print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
 
     def long_term_query(self):
         if self.real_query is None:
@@ -175,4 +177,6 @@ class YrAgency():
         for idx, date in enumerate(forecast_dates):
             self.result_data.append({'forecast_date' : date, 'weather' : weathers[idx], 'temp':temperatures[idx], 'precip' : precipitations[idx]})
         
-        self.file_write()
+        # self.file_write()
+        # print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
+        print(json.dumps(self.result_data, ensure_ascii=False))

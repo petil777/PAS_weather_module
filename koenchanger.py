@@ -12,8 +12,18 @@ class KoEnSoundChanger():
     def __init__(self):
         pass
 
+    @staticmethod
+    def _isEnglish(word):
+        try:
+            word.encode(encoding='utf-8').decode('ascii')
+        except UnicodeDecodeError:
+            return False
+        else:
+            return True
+
     def ko_to_en_sound(self, word):
         if word == '' : return ''
+        if KoEnSoundChanger._isEnglish(word): return word
         try:
             res = requests.get('http://roman.cs.pusan.ac.kr/result_all.aspx', headers=headers, params={'input':word})
             res.raise_for_status()
