@@ -9,7 +9,7 @@ from myutil import json_print
 # https://www.yr.no/?spr=eng
 
 class YrAgency():
-    def __init__(self, file_dir, long_term=False):
+    def __init__(self, file_dir, long_term=True):
         self.file_dir = file_dir
         self.long_term = long_term
         self.target_file_name = None
@@ -29,7 +29,7 @@ class YrAgency():
             return False
 
         if self.long_term:
-            await loop.run_in_executor(None, self.long_term)
+            await loop.run_in_executor(None, self.long_term_query)
         #Default
         else:
             await loop.run_in_executor(None,self.daily_query)
@@ -182,18 +182,21 @@ class YrAgency():
         weather_cells = result_table.select('tbody > tr')[0].find_all('td')
         temp_cells = result_table.select('tbody > tr')[1].find_all('td')
         precip_cells = result_table.select('tbody > tr')[2].find_all('td')
+        date_cells = result_table.select('thead > tr')[0].find_all('th')
 
-        for wcell , tcell, pcell in zip(weather_cells, temp_cells, precip_cells):
+
+        for wcell , tcell, pcell, dcell in zip(weather_cells, temp_cells, precip_cells, date_cells):
             weathers.append(wcell['title'])
             temperatures.append(tcell.text)
             precipitations.append(pcell.text)
-
-        result_table = soup.find('table', {'class' : 'yr-table yr-table-longterm-detailed yr-popup-area lp_longterm_detailed'})
-        cells = result_table.select('th[scope=rowgroup]')
-        for cell in cells:
-            cell = cell.text.strip().split('/')
-            date = cell[-1] + '/' + cell[-2] + '/' + cell[-3].split(' ')[-1]
-            forecast_dates.append(date)
+            forecast_dates.append(dcell.text)
+            
+        # result_table = soup.find('table', {'class' : 'yr-table yr-table-longterm-detailed yr-popup-area lp_longterm_detailed'})
+        # cells = result_table.select('th[scope=rowgroup]')
+        # for cell in cells:
+        #     cell = cell.text.strip().split('/')
+        #     date = cell[-1] + '/' + cell[-2] + '/' + cell[-3].split(' ')[-1]
+        #     forecast_dates.append(date)
 
         for idx, date in enumerate(forecast_dates):
             self.result_data.append({'forecast_date' : date, 'weather' : weathers[idx], 'temp':temperatures[idx], 'precip' : precipitations[idx]})
