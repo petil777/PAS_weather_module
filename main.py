@@ -3,6 +3,7 @@ import numpy as np
 import json
 import os
 import argparse
+import asyncio
 
 from koenchanger import KoEnSoundChanger
 from MeteorologicalAgency.accuweather import AccuWeatherAgency
@@ -10,6 +11,9 @@ from MeteorologicalAgency.koreaweather import KoreaAgency
 from MeteorologicalAgency.norwayweather import YrAgency
 
 
+async def havingparam(pp):
+    await asyncio.sleep(1)
+    print('this is : ', pp)
 
 if __name__ == '__main__':  
     parser = argparse.ArgumentParser()
@@ -19,14 +23,17 @@ if __name__ == '__main__':
     
     if args.not_use is None: args.not_use = []
 
-    if 'yr' not in args.not_use:
-        pass
-        # yr = YrAgency('./weatherData/')
-        # yr.process_all(args.region)
+    loop = asyncio.get_event_loop()
     if 'acc' not in args.not_use:
+        # pass
         acc = AccuWeatherAgency(file_dir='./weatherData/')
-        acc.process_all(args.region)
-
+        loop.run_until_complete(acc.process_all(args.region))
+    if 'yr' not in args.not_use:
+        # pass
+        yr = YrAgency('./weatherData/')
+        # yr.process_all(args.region)
+        loop.run_until_complete(yr.process_all(args.region))
+    loop.close()
     # kr = KoreaAgency()
     # kr.get_query()
 

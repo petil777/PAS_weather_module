@@ -4,6 +4,8 @@ import re
 from datetime import datetime
 import json
 import glob
+import asyncio
+from myutil import json_print
 from koenchanger import KoEnSoundChanger
 
 headers = {
@@ -27,6 +29,7 @@ class AccuWeatherAgency():
     """
     def __init__(self, file_dir):
         self.file_dir = file_dir
+        self.exit_flag = False
         self.region_name = None
         self.target_file_name = None
         self.result_data = None
@@ -53,7 +56,7 @@ class AccuWeatherAgency():
     #             self.target_file_name = files
                 
             
-    def process_all(self, region):
+    async def process_all(self, region):
         region= str.lower(region).strip()
 
 
@@ -61,11 +64,20 @@ class AccuWeatherAgency():
         #     with open(self.target_file_name, 'r') as fr:
         #         data = fr.read()
         #         self.result_data = json.loads(data)
-        
+
+        #This may be finishied in no time
         region = KoEnSoundChanger().ko_to_en_sound(region) 
-        self.region_search(region)
-        self.redirection_for_region_engname()
-        self.get_daily_weather()
+
+        # To ensure former query finished, used await. (requests will be fast)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.region_search, region)
+        if self.exit_flag == True: return False
+        await loop.run_in_executor(None, self.redirection_for_region_engname)
+        if self.exit_flag == True: return False
+        await loop.run_in_executor(None, self.get_daily_weather)
+
+        if self.exit_flag == True: return False
+        else : return True
 
     def region_search(self, region):
         query_url = 'https://www.accuweather.com/en/search-locations?query='
@@ -74,8 +86,9 @@ class AccuWeatherAgency():
         ### Search region by input
         res = requests.get(query_url, headers={'User-Agent' : 'my agent'})
         if res.status_code != 200:
-            print('AccuWeather Server not responsded')
-            exit(0)
+            json_print('AccuWeather Server not responsded')
+            self.exit_flag=True
+            return
             """
     res_div Format
     -------------------------------------------------------------------
@@ -126,14 +139,16 @@ class AccuWeatherAgency():
             if region_code is not None:break
         
         if self.new_href_link is None:
-            print("href link is None")
-            exit(0)
+            json_print("href link is None")
+            self.exit_flag=True
+            return
         
     def redirection_for_region_engname(self):
         res = requests.get(self.new_href_link, headers=headers)
         if res.status_code != 200:
-            print('AccuWeather Server not responsded')
-            exit(0)
+            json_print('AccuWeather Server not responsded')
+            self.exit_flag=True
+            return
         # check with soup.get_text
         """
             [daily_tag] format
@@ -176,4 +191,4 @@ class AccuWeatherAgency():
 
         # self.file_write()
         # print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
-        print(json.dumps(self.result_data, ensure_ascii=False))
+        json_print(self.result_data)

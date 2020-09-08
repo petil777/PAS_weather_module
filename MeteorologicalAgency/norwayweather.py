@@ -1,8 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import asyncio
 from datetime import datetime
 from koenchanger import KoEnSoundChanger
+from myutil import json_print
 
 # https://www.yr.no/?spr=eng
 
@@ -11,19 +13,31 @@ class YrAgency():
         self.file_dir = file_dir
         self.long_term = long_term
         self.target_file_name = None
+        self.exit_flag = False
         #Usually except district name.
         self.region_name = None
         self.real_query = None
         self.result_data =None
         self.koen_sound_converter = KoEnSoundChanger()
-    def process_all(self, region):
+    async def process_all(self, region):
         region = str.lower(region).strip()
-        self.get_query(region)
+        # self.get_query(region)
+        loop = asyncio.get_event_loop()
+        # To ensure get query finish, used await. (requests will be fast)
+        await loop.run_in_executor(None, self.get_query, region)
+        if self.exit_flag == True:
+            return False
+
         if self.long_term:
-            self.long_term_query()
+            await loop.run_in_executor(None, self.long_term)
         #Default
         else:
-            self.daily_query()
+            await loop.run_in_executor(None,self.daily_query)
+
+        if self.exit_flag == True:
+            return False
+        else:
+            return True
 
     def file_write(self):
         dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -36,8 +50,9 @@ class YrAgency():
     def get_query(self, region):
         district = ''
         if len(region) < 1: 
-            print('region name not valid')
-            exit(0)
+            json_print('region name not valid')
+            self.exit_flag=True
+            return
         if region[-1] in  ['도' , '시' , '구' , '군']:
             district = region[-1]
             region = region[0:-1]
@@ -46,8 +61,9 @@ class YrAgency():
         region_ensound = self.koen_sound_converter.ko_to_en_sound(self.region_name)
         district_ensound = self.koen_sound_converter.ko_to_en_sound(district)
         if region_ensound == None:
-            print('No proper changed en sound')
-            exit(0)
+            json_print('No proper changed en sound')
+            self.exit_flag=True
+            return
 
         query_url = 'https://www.yr.no/soek/soek.aspx?sted=' + region_ensound
         
@@ -56,8 +72,9 @@ class YrAgency():
             res = requests.get(query_url, params={'spr' : 'eng'})
             res.raise_for_status()
         except requests.exceptions.RequestException as err:
-            print('Norway weather request failed : ', err)
-            exit(0)
+            json_print('Norway weather request failed : ', err)
+            self.exit_flag=True
+            return
 
         soup = BeautifulSoup(res.text, 'html.parser')
         result_table = soup.find('table', {'class' : 'yr-table yr-table-search-results'})
@@ -79,15 +96,17 @@ class YrAgency():
             
     def daily_query(self):
         if self.real_query is None:
-            print('real query is not set. please check region name with district')
+            json_print('real query is not set. please check region name with district')
+            self.exit_flag=True
             return
         #Second query
         try:
             res = requests.get(self.real_query)
             res.raise_for_status()
         except requests.exceptions.RequestException as err:
-            print('Norway weather request failed at second query : ', err)
-            exit(0)
+            json_print('Norway weather request failed at second query : ', err)
+            self.exit_flag=True
+            return
 
         soup = BeautifulSoup(res.text, 'html.parser')
         #yr-table yr-table-overview2 yr-popup-area
@@ -132,11 +151,12 @@ class YrAgency():
             self.result_data.append({'forecast_date': date, 'weather':weathers[idx], 'temp':temperatures[idx], 'precip' : precipitations[idx]})
 
         # self.file_write()
-        print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
+        json_print(self.result_data)
 
     def long_term_query(self):
         if self.real_query is None:
-            print('real query is not set. please check region name with district')
+            json_print('real query is not set. please check region name with district')
+            self.exit_flag=True
             return
         self.real_query += 'long.html'
 
@@ -145,8 +165,9 @@ class YrAgency():
             res = requests.get(self.real_query)
             res.raise_for_status()
         except requests.exceptions.RequestException as err:
-            print('Norway weather request failed at second query : ', err)
-            exit(0)
+            json_print('Norway weather request failed at second query : ', err)
+            self.exit_flag=True
+            return
 
 
         self.result_data = []
@@ -179,4 +200,4 @@ class YrAgency():
         
         # self.file_write()
         # print(json.dumps(self.result_data, indent=4, ensure_ascii=False))
-        print(json.dumps(self.result_data, ensure_ascii=False))
+        json_print(self.result_data)
