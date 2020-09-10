@@ -32,6 +32,7 @@ class AccuWeatherAgency():
         self.exit_flag = False
         self.region_name = None
         self.target_file_name = None
+        self.new_href_link = None
         self.result_data = None
 
     def file_write(self):
@@ -101,43 +102,36 @@ class AccuWeatherAgency():
         </a>
         <a href="/web-api/three-day-redirect?key=1-1318085_30_al&amp;target=">
                         분당동,  경기도, KR
-                        
-                            <span>(1-1318085_30_AL)</span>
-        </a>
-        <a href="/web-api/three-day-redirect?key=2330398&amp;target=">
-                        분당구,  경기도, KR
-                        
-                            <span>(2330398)</span>
-        </a>
-        <a href="/web-api/three-day-redirect?key=1318085&amp;target=">
-                        분당동,  경기도, KR
-                        
-                            <span>(1318085)</span>
         </a>
         </div>]
     """
-        soup = BeautifulSoup(res.text, 'html.parser')
-        res_div = soup.find_all("div", {'class' : 'search-results'})
+        try:
+            soup = BeautifulSoup(res.text, 'html.parser')
+            res_div = soup.find_all("div", {'class' : 'search-results'})
 
-        href_link = None
-        region_code = None
-        for res in res_div:
-            res_a = res.find_all("a")
-            if len(res_a) == 0 : continue
-            for target_a in res_a:
-                p = re.compile(region)
-                matched_words = p.findall(str.lower(target_a.text.strip()))
-                # if(bool(re.search(region, target_a.text.strip()))):
-                if len(matched_words) > 0:
-                    self.region_name = matched_words[0]
-                    # /web-api/three-day-redirect?key=1-2330398_30_al&target=
-                    href_link = target_a['href']
-                    # 1-2330398_30_al
-                    region_code = href_link.split('key=')[1].split('&')[0]
-                    self.new_href_link = 'https://accuweather.com' + href_link
-                break
-            if region_code is not None:break
-        
+            href_link = None
+            region_code = None
+            for res in res_div:
+                res_a = res.find_all("a")
+                if len(res_a) == 0 : continue
+                for target_a in res_a:
+                    p = re.compile(region)
+                    matched_words = p.findall(str.lower(target_a.text.strip()))
+                    
+                    if len(matched_words) > 0:
+                        self.region_name = matched_words[0]
+                        # /web-api/three-day-redirect?key=1-2330398_30_al&target=
+                        href_link = target_a['href']
+                        # 1-2330398_30_al
+                        region_code = href_link.split('key=')[1].split('&')[0]
+                        self.new_href_link = 'https://accuweather.com' + href_link
+                    break
+                if region_code is not None:break
+        except Exception as err:
+            json_print("Error occured while parsing region code in accuweather")
+            self.exit_flag = True
+            return
+
         if self.new_href_link is None:
             json_print("href link is None")
             self.exit_flag=True
@@ -165,27 +159,37 @@ class AccuWeatherAgency():
         self.daily_query_url = 'https://accuweather.com' + replace_tag
 
     def get_daily_weather(self):
-        daily_result = requests.get(self.daily_query_url, headers=headers)
-        soup = BeautifulSoup(daily_result.text, 'html.parser')
-
-        daily_forecasts = soup.find_all('a', {'class' : 'daily-forecast-card'})
-
-        self.result_data = []
-        forecast_dates = []
-        weathers = []
-        temperatures = []
-        precipitations = []
-        for daily in daily_forecasts:
-            date = daily.select(".info > .date ")[0].text.strip() # Fri\n9/18
-            temp = daily.select(".info > .temp")[0].text.strip() # 25°\n/17°
-            weather = daily.select(".phrase")[0].text.strip()
-            precip = daily.select(".precip")[0].text.strip()
-            forecast_dates.append(date)
-            temperatures.append(temp)
-            precipitations.append(precip)
-            weathers.append(weather)
-            # {'temp': '23°\n/20°', 'precip': '73%', 'forecast_date': 'Mon\n9/7', 'phrase': 'Wind and rain from typhoon'}
         
+        daily_result = requests.get(self.daily_query_url, headers=headers)
+        if daily_result.status_code != 200:
+            json_print('AccuWeather Server not responsded')
+            self.exit_flag=True
+            return
+
+        try:
+            soup = BeautifulSoup(daily_result.text, 'html.parser')
+            daily_forecasts = soup.find_all('a', {'class' : 'daily-forecast-card'})
+
+            self.result_data = []
+            forecast_dates = []
+            weathers = []
+            temperatures = []
+            precipitations = []
+            for daily in daily_forecasts:
+                date = daily.select(".info > .date ")[0].text.strip() # Fri\n9/18
+                temp = daily.select(".info > .temp")[0].text.strip() # 25°\n/17°
+                weather = daily.select(".phrase")[0].text.strip()
+                precip = daily.select(".precip")[0].text.strip()
+                forecast_dates.append(date)
+                temperatures.append(temp)
+                precipitations.append(precip)
+                weathers.append(weather)
+                # {'temp': '23°\n/20°', 'precip': '73%', 'forecast_date': 'Mon\n9/7', 'phrase': 'Wind and rain from typhoon'}
+        except Exception as err:
+            json_print('Error occured while parsing get_daily_weather in accuweather')
+            self.exit_flag=True
+            return
+
         for idx, date in enumerate(forecast_dates):
             self.result_data.append({'forecast_date':date, 'weather' : weathers[idx], 'temp':temperatures[idx], 'precip':precipitations[idx]})
 
