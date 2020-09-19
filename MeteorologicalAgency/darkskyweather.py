@@ -81,7 +81,7 @@ class DarkSkyAgency():
 
                 high_temp = high_temp_info.select('.temp')[0].text.strip()
                 low_temp = low_temp_info.select('.temp')[0].text.strip()
-                temp = str(high_temp) + '/n' + str(low_temp)
+                temp = str(high_temp) + '\n' + str(low_temp)
 
                 precip_info = day_detail.find('div', {'class' : 'precipAccum swap'})
                 precip_num = precip_info.select('.num.swip')[0].text.strip()
