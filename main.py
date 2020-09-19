@@ -9,7 +9,7 @@ from koenchanger import KoEnSoundChanger
 from MeteorologicalAgency.accuweather import AccuWeatherAgency
 from MeteorologicalAgency.koreaweather import KoreaAgency
 from MeteorologicalAgency.norwayweather import YrAgency
-
+from MeteorologicalAgency.darkskyweather import DarkSkyAgency
 
 async def havingparam(pp):
     await asyncio.sleep(1)
@@ -33,6 +33,9 @@ if __name__ == '__main__':
         yr = YrAgency('./weatherData/')
         # yr.process_all(args.region)
         loop.run_until_complete(yr.process_all(args.region))
+    if 'dk' not in args.not_use:
+        dk = DarkSkyAgency()
+        loop.run_until_complete(dk.process_all(args.region))
     loop.close()
     # kr = KoreaAgency()
     # kr.get_query()
