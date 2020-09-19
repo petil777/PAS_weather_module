@@ -150,9 +150,10 @@ class AccuWeatherAgency():
             except Exception as err:
                 if retry==False : do_query(True, region_query_url)
                 if self.new_href_link is not None : return
-                json_print("Error occured while parsing region code in accuweather")
-                self.exit_flag = True
-                return
+                if retry==True: # to print only one time
+                    json_print("Error occured while parsing region code in accuweather")
+                    self.exit_flag = True
+                    return
 
         do_query(False, region_query_url)
         #retry with no parsing error(just no result. accuweather doesn't make error in this kind of parsing when no result)

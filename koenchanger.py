@@ -29,7 +29,7 @@ class KoEnSoundChanger():
             res = requests.get('http://roman.cs.pusan.ac.kr/result_all.aspx', headers=headers, params={'input':word})
             res.raise_for_status()
         except requests.exceptions.RequestException as err:
-            json_print("Ko En chagne request server error")
+            json_print("Ko En chagne request server error", err)
             # print('ko en change request error : ', err)
             exit(0)
             

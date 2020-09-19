@@ -100,9 +100,10 @@ class YrAgency():
             except Exception as err:
                 if retry==False: do_query(True, region_query_url)
                 if self.real_query is not None : return
-                json_print("Error occured while parsing get_query in norway agency : ")
-                self.exit_flag=True
-                return
+                if retry==True: # to print only one time
+                    json_print("Error occured while parsing get_query in norway agency : ")
+                    self.exit_flag=True
+                    return
 
         do_query(False, region_query_url)
 
