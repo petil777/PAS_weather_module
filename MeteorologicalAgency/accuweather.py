@@ -86,7 +86,7 @@ class AccuWeatherAgency():
         if self.exit_flag == True: return False
         else : return True
 
-    def region_search(self, region, region_without_district):
+    def region_search(self, region_name, region_without_district_name):
         """  
         res_div Format
     -------------------------------------------------------------------
@@ -109,14 +109,14 @@ class AccuWeatherAgency():
         region_without_district : str
             Suppose region has district name (seoulsi, gangnamgu)
         """
-        
+
         region_query_url = 'https://www.accuweather.com/en/search-locations?query='
 
         def do_query(retry, region_query_url):
             if retry==False:
-                query_url = region_query_url + region
+                query_url = region_query_url + region_name
             else:
-                query_url = region_query_url + region_without_district
+                query_url = region_query_url + region_without_district_name
             # Don't know why but this query should be changed with User-Agent different with real browser agent
             ### Search region by input
             res = requests.get(query_url, headers={'User-Agent' : 'my agent'})
@@ -135,7 +135,7 @@ class AccuWeatherAgency():
                     res_a = res.find_all("a")
                     if len(res_a) == 0 : continue
                     for target_a in res_a:
-                        p = re.compile(region_without_district if retry else region)
+                        p = re.compile(region_without_district_name if retry else region_name)
                         matched_words = p.findall(str.lower(target_a.text.strip()))
                         if len(matched_words) > 0:
                             self.region_name = matched_words[0]
@@ -146,14 +146,16 @@ class AccuWeatherAgency():
                             self.new_href_link = 'https://accuweather.com' + href_link
                             break
                     if region_code is not None:break
+                
             except Exception as err:
                 if retry==False : do_query(True, region_query_url)
+                if self.new_href_link is not None : return
                 json_print("Error occured while parsing region code in accuweather")
                 self.exit_flag = True
                 return
 
         do_query(False, region_query_url)
-        #retry with no error
+        #retry with no parsing error(just no result. accuweather doesn't make error in this kind of parsing when no result)
         if self.new_href_link is None : do_query(True, region_query_url)
 
         if self.new_href_link is None:

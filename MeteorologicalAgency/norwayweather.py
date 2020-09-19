@@ -48,53 +48,63 @@ class YrAgency():
 
     # region = bundang  gu(district)  (already english parsed)
     def get_query(self, region):
-        district = ''
-        if len(region) < 1: 
-            json_print('region name not valid')
-            self.exit_flag=True
-            return
-        if region[-1] in  ['도' , '시' , '구' , '군']:
-            district = region[-1]
-            region = region[0:-1]
 
         self.region_name = region
-        region_ensound = self.koen_sound_converter.ko_to_en_sound(self.region_name)
-        district_ensound = self.koen_sound_converter.ko_to_en_sound(district)
-        if region_ensound == None:
+
+        region_name = self.koen_sound_converter.ko_to_en_sound(region)
+        region_ensound = self.koen_sound_converter.ko_to_en_sound(region[:-1])
+        district_ensound = self.koen_sound_converter.ko_to_en_sound(region[-1])
+        region_without_district_name = region_ensound
+
+        if region_name == None:
             json_print('No proper changed en sound')
             self.exit_flag=True
             return
 
-        query_url = 'https://www.yr.no/soek/soek.aspx?sted=' + region_ensound
+        region_query_url = 'https://www.yr.no/soek/soek.aspx?sted='
         
-        #First query for searching region 
-        try:
+        def do_query(retry, region_query_url):
+            if retry==False:
+                query_url = region_query_url + region_name
+            else:
+                query_url = region_query_url + region_without_district_name
+            #First query for searching region 
+            # try:
+            #     res = requests.get(query_url, headers=headers)
+            #     res.raise_for_status()
+            # except requests.exceptions.RequestException as err:
+            #     json_print('Norway weather request failed : ')
+            #     self.exit_flag=True
+            #     return
             res = requests.get(query_url, headers=headers)
-            res.raise_for_status()
-        except requests.exceptions.RequestException as err:
-            json_print('Norway weather request failed : ')
-            self.exit_flag=True
-            return
-        try:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            result_table = soup.find('table', {'class' : 'yr-table yr-table-search-results'})
-            trs = result_table.find_all('tr')
-            for idx, tr in enumerate(trs):
-                if idx ==0 : continue # table header
-                # change eng suppor url "https://www.yr.no/place/South_Korea/Gyeonggi/Bundang-gu/"
-                region_title = tr.find('a')['title']
-                web_api = tr.find('a')['href']
-                #bundang-  bundang-gu  seoul
-                if str.lower(region_title).startswith(region_ensound): 
-                    self.real_query = 'https://www.yr.no' + web_api
-                    #Perfect match
-                    if str.lower(region_title) == region_ensound+'-' + district_ensound \
-                        or (district_ensound=='' and str.lower(region_title) == region_ensound):
-                        break
-        except Exception as err:
-            json_print("Error occured while parsing get_query in norway agency : ")
-            self.exit_flag=True
-            return
+            if res.status_code != 200:
+                json_print('yrWeather Server not responsded')
+                self.exit_flag=True
+                return
+            try:
+                soup = BeautifulSoup(res.text, 'html.parser')
+                result_table = soup.find('table', {'class' : 'yr-table yr-table-search-results'})
+                trs = result_table.find_all('tr')
+                for idx, tr in enumerate(trs):
+                    if idx ==0 : continue # table header
+                    # change eng suppor url "https://www.yr.no/place/South_Korea/Gyeonggi/Bundang-gu/"
+                    region_title = tr.find('a')['title']
+                    web_api = tr.find('a')['href']
+                    #bundang-  bundang-gu  seoul
+                    if str.lower(region_title).startswith(region_without_district_name if retry else region_name): 
+                        self.real_query = 'https://www.yr.no' + web_api
+                        #Perfect match
+                        if (str.lower(region_title) == region_name or \
+                            str.lower(region_title) == region_ensound + '-' + district_ensound):
+                            break
+            except Exception as err:
+                if retry==False: do_query(True, region_query_url)
+                if self.real_query is not None : return
+                json_print("Error occured while parsing get_query in norway agency : ")
+                self.exit_flag=True
+                return
+
+        do_query(False, region_query_url)
 
     def daily_query(self):
         if self.real_query is None:
