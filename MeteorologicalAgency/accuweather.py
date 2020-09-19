@@ -22,12 +22,38 @@ headers = {
 }
 
 
-# https://www.accuweather.com/
 class AccuWeatherAgency():
     """
-    File Format : accuweather_2020-09-05 20:03:57_분당
+        Link : https://www.accuweather.com/
+        Mechanism [process_all]
+        1. [KoEnSoundChanger] check region input and convert to english sound if it's not english
+        2. [region_search] : call region_search function 
+        3. [get_daily_query_url] : get redirection api in html code for redirection with region_code inserted in site
+        4. [get_daily_weather] : get weather
     """
-    def __init__(self, file_dir):
+    def __init__(self, file_dir=None):
+        """
+
+        Parameters
+        ----------
+        file_dir : str (default None)
+            file directory to store data if necessary
+        
+        Other Parameters
+        ----------
+        exit_flag : bool
+            Flag to stop anywhere.
+        region_name : str
+            Can be english or korean both. (ex. 분당구, bundanggu)
+            But can't having district name. (ex. 서울시 강남구 x.  서울시 o, 강남 o , 성남 o, 분당 o )
+            If have more than one district, select the first one by site (ex. 분당 -> 분당구  insted of 분당동)
+        target_file_name: str
+            filename to store
+        new_href_link : str
+            Redirection link for get_daily_query_url function
+        result_data : Array
+            Format Example: [{"forecast_date": "Sat\n9/19", "weather": "Mostly sunny", "temp": "26°\n/15°", "precip": "0%"}, {...},...]
+        """
         self.file_dir = file_dir
         self.exit_flag = False
         self.region_name = None
@@ -41,57 +67,28 @@ class AccuWeatherAgency():
         with open(self.target_file_name, 'w') as fi:
             # To allow special character for temparature, ensure_ascii=false
             fi.write(json.dumps(self.result_data, indent=4, ensure_ascii=False))
-
-    # def find_file(self, region):
-    #     target_files = glob.glob(self.file_dir + 'accuweather_*')
-    #     for files in target_files:
-    #         target_date = files.split('_')[1]
-    #         target_region = files.split('_')[2]
-    #         if bool(re.search(region, target_region)) is not True:
-    #             continue
-            
-    #         dif = datetime.now() - datetime.strptime(target_date, '%Y-%m-%d %H:%M:%S') 
-    #         days, seconds = dif.days, dif.seconds
-    #         hours = days*24 + seconds/3600
-    #         if hours <= self.hours_min:
-    #             self.target_file_name = files
                 
             
     async def process_all(self, region):
         region= str.lower(region).strip()
 
-
-        # if self.target_file_name is not None:
-        #     with open(self.target_file_name, 'r') as fr:
-        #         data = fr.read()
-        #         self.result_data = json.loads(data)
-
         #This may be finishied in no time
-        region = KoEnSoundChanger().ko_to_en_sound(region) 
-
+        region_name = KoEnSoundChanger().ko_to_en_sound(region) 
+        region_without_district_name = KoEnSoundChanger().ko_to_en_sound(region[:-1])
         # To ensure former query finished, used await. (requests will be fast)
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.region_search, region)
+        await loop.run_in_executor(None, self.region_search, region_name, region_without_district_name)
         if self.exit_flag == True: return False
-        await loop.run_in_executor(None, self.redirection_for_region_engname)
+        await loop.run_in_executor(None, self.get_daily_query_url)
         if self.exit_flag == True: return False
         await loop.run_in_executor(None, self.get_daily_weather)
 
         if self.exit_flag == True: return False
         else : return True
 
-    def region_search(self, region):
-        query_url = 'https://www.accuweather.com/en/search-locations?query='
-        query_url += region
-        # Don't know why but this query should be changed with User-Agent different with real browser agent
-        ### Search region by input
-        res = requests.get(query_url, headers={'User-Agent' : 'my agent'})
-        if res.status_code != 200:
-            json_print('AccuWeather Server not responsded')
-            self.exit_flag=True
-            return
-            """
-    res_div Format
+    def region_search(self, region, region_without_district):
+        """  
+        res_div Format
     -------------------------------------------------------------------
             [<div class="search-results">
         </div>, <div class="search-results">
@@ -104,40 +101,67 @@ class AccuWeatherAgency():
                         분당동,  경기도, KR
         </a>
         </div>]
-    """
-        try:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            res_div = soup.find_all("div", {'class' : 'search-results'})
 
-            href_link = None
-            region_code = None
-            for res in res_div:
-                res_a = res.find_all("a")
-                if len(res_a) == 0 : continue
-                for target_a in res_a:
-                    p = re.compile(region)
-                    matched_words = p.findall(str.lower(target_a.text.strip()))
-                    
-                    if len(matched_words) > 0:
-                        self.region_name = matched_words[0]
-                        # /web-api/three-day-redirect?key=1-2330398_30_al&target=
-                        href_link = target_a['href']
-                        # 1-2330398_30_al
-                        region_code = href_link.split('key=')[1].split('&')[0]
-                        self.new_href_link = 'https://accuweather.com' + href_link
-                    break
-                if region_code is not None:break
-        except Exception as err:
-            json_print("Error occured while parsing region code in accuweather")
-            self.exit_flag = True
-            return
+        Parameters
+        ----------
+        region : str
+            Suppose region has no district. seoul. gangnam). Try First with this
+        region_without_district : str
+            Suppose region has district name (seoulsi, gangnamgu)
+        """
+        
+        region_query_url = 'https://www.accuweather.com/en/search-locations?query='
+
+        def do_query(retry, region_query_url):
+            if retry==False:
+                query_url = region_query_url + region
+            else:
+                query_url = region_query_url + region_without_district
+            # Don't know why but this query should be changed with User-Agent different with real browser agent
+            ### Search region by input
+            res = requests.get(query_url, headers={'User-Agent' : 'my agent'})
+            if res.status_code != 200:
+                json_print('AccuWeather Server not responsded')
+                self.exit_flag=True
+                return
+
+            try:
+                soup = BeautifulSoup(res.text, 'html.parser')
+                res_div = soup.find_all("div", {'class' : 'search-results'})
+
+                href_link = None
+                region_code = None
+                for res in res_div:
+                    res_a = res.find_all("a")
+                    if len(res_a) == 0 : continue
+                    for target_a in res_a:
+                        p = re.compile(region_without_district if retry else region)
+                        matched_words = p.findall(str.lower(target_a.text.strip()))
+                        if len(matched_words) > 0:
+                            self.region_name = matched_words[0]
+                            # /web-api/three-day-redirect?key=1-2330398_30_al&target=
+                            href_link = target_a['href']
+                            # 1-2330398_30_al
+                            region_code = href_link.split('key=')[1].split('&')[0]
+                            self.new_href_link = 'https://accuweather.com' + href_link
+                            break
+                    if region_code is not None:break
+            except Exception as err:
+                if retry==False : do_query(True, region_query_url)
+                json_print("Error occured while parsing region code in accuweather")
+                self.exit_flag = True
+                return
+
+        do_query(False, region_query_url)
+        #retry with no error
+        if self.new_href_link is None : do_query(True, region_query_url)
 
         if self.new_href_link is None:
             json_print("href link is None")
             self.exit_flag=True
             return
         
-    def redirection_for_region_engname(self):
+    def get_daily_query_url(self):
         res = requests.get(self.new_href_link, headers=headers)
         if res.status_code != 200:
             json_print('AccuWeather Server not responsded')
